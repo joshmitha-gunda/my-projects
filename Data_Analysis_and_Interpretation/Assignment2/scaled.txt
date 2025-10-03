@@ -1,0 +1,82 @@
+i1=double(imread('T1.jpg'));
+i2=255*(i1.^2)/max(i1(:).^2)+1;
+numrows=size(i2,1);
+numcols=size(i2,2);
+c_values=zeros(1,21);
+qmi_values=zeros(1,21);
+mi_values=zeros(1,21);
+shift=1;
+for t=-10:10 
+    shifted_i2 = zeros(numrows, numcols); 
+    if t>=0
+        if t<numcols
+            shifted_i2(:,(t+1):numcols)=i2(:,1:(numcols-t));
+        end 
+    else
+        if abs(t)<numcols 
+            shifted_i2(:,1:(numcols+t))=i2(:,(1-t):numcols);
+        end
+    end 
+    non_zero=(shifted_i2>0);
+    x=i1(non_zero);
+    y=shifted_i2(non_zero);
+    n=length(x);
+    mean_x=sum(x)/n;
+    mean_y=sum(y)/n;
+    numerator=sum((x-mean_x).*(y-mean_y));
+    sum_x_2=sum((x-mean_x).^2);
+    sum_y_2=sum((y-mean_y).^2);
+    denominator=sqrt(sum_x_2*sum_y_2);
+    c=numerator/denominator;
+    c_values(shift)=c;
+    bins=0:10:255;
+    num_bins=length(bins)-1;
+    hist=zeros(num_bins,num_bins);
+    for k=1:length(x)
+        bin1=floor(x(k)/10)+1;
+        bin2=floor(y(k)/10)+1;
+        if bin1 <= num_bins && bin2 <= num_bins
+            hist(bin1, bin2) = hist(bin1, bin2) + 1;
+        end
+    end
+    hist=hist/sum(hist(:));
+    hist1=sum(hist,2);
+    hist2=sum(hist,1);
+    qmi=0;
+    for i=1:num_bins
+        for j=1:num_bins
+            diff=hist(i,j)-hist1(i)*hist2(j);
+            qmi=qmi+diff^2;
+        end
+    end
+    mi=0;
+    for i=1:num_bins
+        for j=1:num_bins
+            if hist(i,j)>0
+                mi=mi+hist(i,j)*log(hist(i,j)/(hist1(i)*hist2(j)));
+            end
+        end
+    end
+    qmi_values(shift)=qmi;
+    mi_values(shift)=mi;
+    shift=shift+1;
+end 
+
+t=-10:10;
+figure;
+subplot(3,1,1);
+plot(t,c_values,'-o'); grid on;
+xlabel('shift');
+ylabel('correlation coefficient');
+title('correlation coefficient vs t')
+subplot(3,1,2);
+plot(t,qmi_values,'-o');grid on;
+xlabel('shift');
+ylabel('qmi');
+title('QMI vs t')
+subplot(3,1,3);
+plot(t,mi_values,'-o'); grid on;
+xlabel('shift');
+ylabel('mutual information');
+title('mutual information vs t');
+sgtitle('scaled image');
